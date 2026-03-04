@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<title>CodeDrop — Drop your code.</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@700;800;900&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#080809;--s1:#0f0f11;--s2:#161619;--s3:#1e1e22;--s4:#26262c;
+  --b1:#1c1c20;--b2:#2a2a30;--b3:#383840;
+  --t:#f2f2f6;--tm:#50505e;--ts:#8a8a9e;
+  --ac:#6f5ff0;--acb:#9585ff;--acd:rgba(111,95,240,.1);
+  --grn:#1fd08a;--red:#f53d5e;--yel:#f0a500;
+  --r:12px;--rs:8px;
+  --sh:0 8px 40px rgba(0,0,0,.6);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{min-height:100%;background:var(--bg);color:var(--t);font-family:'JetBrains Mono',monospace}
+::-webkit-scrollbar{width:3px;height:3px}::-webkit-scrollbar-thumb{background:var(--b3);border-radius:3px}
+button{cursor:pointer;font-family:inherit}input,textarea,select{font-family:inherit;cursor:text}
+a{color:inherit;text-decoration:none}
+
+/* ─── NAV ─────────────────────────────────── */
+#nav{
+  position:fixed;top:0;left:0;right:0;height:52px;z-index:100;
+  background:rgba(8,8,9,.88);backdrop-filter:blur(18px);
+  border-bottom:1px solid var(--b1);
+  display:flex;align-items:center;padding:0 16px;gap:8px;
+}
+.logo{display:flex;align-items:center;gap:7px;cursor:pointer;flex-shrink:0}
+.logo-mark{width:28px;height:28px;background:var(--ac);border-radius:7px;display:flex;align-items:center;justify-content:center}
+.logo-mark svg{display:block}
+.logo-txt{font-family:'Syne',sans-serif;font-weight:900;font-size:17px;letter-spacing:-.3px}
+.logo-txt em{color:var(--acb);font-style:normal}
+.nav-sep{width:1px;height:20px;background:var(--b2);margin:0 4px}
+.nav-link{font-size:11.5px;color:var(--tm);padding:5px 9px;border-radius:6px;border:none;background:none;transition:all .14s}
+.nav-link:hover{color:var(--t);background:var(--s3)}
+.ngap{flex:1}
+.nbtn{padding:6px 13px;border-radius:var(--rs);font-size:11.5px;border:1px solid var(--b2);background:transparent;color:var(--ts);transition:all .14s}
+.nbtn:hover{border-color:var(--b3);color:var(--t)}
+.nbtn.ac{background:var(--ac);border-color:var(--ac);color:#fff;box-shadow:0 2px 16px rgba(111,95,240,.35)}
+.nbtn.ac:hover{background:var(--acb)}
+.nav-av{
+  width:30px;height:30px;border-radius:50%;border:1.5px solid var(--b2);
+  overflow:hidden;cursor:pointer;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Syne',sans-serif;font-weight:900;font-size:12px;
+  background:var(--acd);color:var(--acb);transition:border-color .14s;
+}
+.nav-av:hover{border-color:var(--ac)}
+.nav-av img{width:100%;height:100%;object-fit:cover}
+
+/* ─── DROPDOWN ────────────────────────────── */
+.dd{position:relative}
+.ddm{
+  position:absolute;right:0;top:calc(100% + 7px);
+  background:var(--s2);border:1px solid var(--b2);border-radius:var(--r);
+  min-width:172px;z-index:200;display:none;overflow:hidden;
+  box-shadow:var(--sh);animation:pop .14s ease;
+}
+.ddm.on{display:block}
+.ddi{
+  width:100%;padding:9px 14px;font-size:11.5px;color:var(--ts);
+  display:flex;align-items:center;gap:8px;border:none;background:none;
+  transition:background .1s;text-align:left;
+}
+.ddi:hover{background:var(--s3);color:var(--t)}
+.ddi.red{color:var(--red)}.ddi.red:hover{background:rgba(245,61,94,.07)}
+.ddsep{height:1px;background:var(--b1);margin:3px 0}
+
+/* ─── PAGES ───────────────────────────────── */
+.pg{display:none;min-height:100vh;padding-top:52px}
+.pg.on{display:block}
+
+/* ─── BUTTONS ─────────────────────────────── */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:8px 16px;border-radius:var(--rs);font-size:12px;border:none;transition:all .14s;white-space:nowrap}
+.btn-p{background:var(--ac);color:#fff;box-shadow:0 2px 16px rgba(111,95,240,.28)}
+.btn-p:hover{background:var(--acb);transform:translateY(-1px)}
+.btn-s{background:var(--s3);color:var(--ts);border:1px solid var(--b2)}
+.btn-s:hover{border-color:var(--b3);color:var(--t)}
+.btn-d{background:rgba(245,61,94,.08);color:var(--red);border:1px solid rgba(245,61,94,.18)}
+.btn-d:hover{background:rgba(245,61,94,.15)}
+.sm{padding:5px 11px;font-size:11px}
+.xs{padding:3px 8px;font-size:10.5px}
+
+/* ─── FORMS ───────────────────────────────── */
+.fg{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.fl{font-size:9.5px;color:var(--tm);text-transform:uppercase;letter-spacing:1px}
+.fi{
+  background:var(--s2);border:1px solid var(--b2);color:var(--t);
+  border-radius:var(--rs);padding:9px 12px;font-size:12.5px;
+  outline:none;transition:border-color .15s;width:100%;
+}
+.fi:focus{border-color:var(--ac)}
+.fi::placeholder{color:var(--tm)}
+select.fi{cursor:pointer}
+select.fi option{background:var(--s2)}
+.ferr{font-size:11px;color:var(--red);display:none;margin-top:3px}
+.ferr.on{display:block}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+@media(max-width:540px){.frow{grid-template-columns:1fr}}
+
+/* ─── TOAST ───────────────────────────────── */
+.toast{
+  position:fixed;bottom:18px;right:18px;z-index:999;
+  background:var(--s2);border:1px solid var(--b2);color:var(--t);
+  padding:9px 15px;border-radius:var(--rs);font-size:11.5px;
+  display:flex;align-items:center;gap:7px;
+  animation:slideup .2s ease;box-shadow:var(--sh);max-width:280px;
+}
+.toast.ok{border-color:rgba(31,208,138,.25);color:var(--grn)}
+.toast.err{border-color:rgba(245,61,94,.25);color:var(--red)}
+
+/* ─── MODAL ───────────────────────────────── */
+.mbg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;display:none;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(5px)}
+.mbg.on{display:flex}
+.modal{background:var(--s1);border:1px solid var(--b2);border-radius:var(--r);padding:22px;width:100%;max-width:400px;animation:pop .16s ease;box-shadow:var(--sh)}
+.modal-t{font-family:'Syne',sans-serif;font-weight:800;font-size:17px;margin-bottom:4px}
+.modal-s{font-size:11.5px;color:var(--tm);margin-bottom:18px;line-height:1.65}
+.modal-acts{display:flex;gap:7px;justify-content:flex-end;margin-top:18px}
+
+/* ─── HERO ────────────────────────────────── */
+.hero{
+  padding:68px 20px 50px;text-align:center;
+  background:radial-gradient(ellipse 65% 38% at 50% -10%, rgba(111,95,240,.09) 0%, transparent 60%);
+  border-bottom:1px solid var(--b1);
+}
+.hero h1{font-family:'Syne',sans-serif;font-weight:900;font-size:clamp(36px,7vw,66px);letter-spacing:-2.5px;line-height:.95;margin-bottom:14px}
+.hero h1 em{font-style:normal;background:linear-gradient(135deg,var(--ac),var(--acb));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero p{font-size:12.5px;color:var(--tm);max-width:360px;margin:0 auto 24px;line-height:1.75}
+.hero-btns{display:flex;gap:9px;justify-content:center;flex-wrap:wrap}
+
+/* ─── WRAP ────────────────────────────────── */
+.wrap{max-width:940px;margin:0 auto;padding:30px 18px}
+.sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.sec-lbl{font-family:'Syne',sans-serif;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--tm)}
+
+/* ─── CARDS ───────────────────────────────── */
+.grid{display:flex;flex-direction:column;gap:8px}
+.card{
+  background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);
+  padding:15px 17px;cursor:pointer;position:relative;overflow:hidden;
+  transition:border-color .15s,transform .15s,box-shadow .15s;
+}
+.card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2.5px;background:linear-gradient(180deg,var(--ac),var(--acb));opacity:0;transition:opacity .15s;border-radius:2px 0 0 2px}
+.card:hover{border-color:var(--b2);transform:translateY(-1px);box-shadow:0 4px 20px rgba(0,0,0,.35)}
+.card:hover::before{opacity:1}
+.card-top{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.lbadge{font-size:9px;padding:2px 7px;border-radius:20px;background:var(--acd);color:var(--acb);text-transform:uppercase;letter-spacing:.7px;flex-shrink:0}
+.card-title{font-family:'Syne',sans-serif;font-weight:700;font-size:13.5px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-prev{font-size:11px;color:var(--tm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:9px;line-height:1.5}
+.card-foot{display:flex;align-items:center;gap:8px;font-size:10px;color:var(--tm);flex-wrap:wrap}
+.sep{color:var(--b3)}
+.vis-p{color:var(--grn);font-size:9.5px}
+.vis-u{color:var(--yel);font-size:9.5px}
+.vis-r{color:var(--red);font-size:9.5px}
+.card-owner-acts{margin-left:auto;display:flex;gap:4px;opacity:0;transition:opacity .14s}
+.card:hover .card-owner-acts{opacity:1}
+
+/* ─── EMPTY ───────────────────────────────── */
+.empty{text-align:center;padding:60px 20px;color:var(--tm)}
+.empty-icon{font-size:40px;opacity:.3;margin-bottom:13px}
+.empty h3{font-family:'Syne',sans-serif;font-weight:800;font-size:16px;color:var(--ts);margin-bottom:6px}
+.empty p{font-size:11.5px;line-height:1.7}
+
+/* ─── TABS ────────────────────────────────── */
+.tabs{display:flex;gap:2px;background:var(--s2);border:1px solid var(--b1);border-radius:var(--rs);padding:3px;margin-bottom:16px;width:fit-content}
+.tab{padding:5px 13px;border-radius:6px;font-size:11px;color:var(--tm);border:none;background:none;transition:all .13s;cursor:pointer}
+.tab.on{background:var(--s4);color:var(--t)}
+
+/* ─── SEARCH ──────────────────────────────── */
+.sbar{display:flex;align-items:center;gap:7px;background:var(--s2);border:1px solid var(--b2);border-radius:var(--rs);padding:8px 12px;margin-bottom:16px;transition:border-color .15s}
+.sbar:focus-within{border-color:var(--ac)}
+.sbar input{background:none;border:none;color:var(--t);font-size:12.5px;outline:none;flex:1;font-family:inherit}
+.sbar input::placeholder{color:var(--tm)}
+
+/* ─── EDITOR ──────────────────────────────── */
+.editor-shell{background:var(--s1);border:1px solid var(--b2);border-radius:var(--r);overflow:hidden;margin-bottom:10px}
+.ebar{display:flex;align-items:center;gap:8px;padding:8px 13px;background:var(--s2);border-bottom:1px solid var(--b2)}
+.edots{display:flex;gap:4px}.edots span{width:10px;height:10px;border-radius:50%}
+.er{background:#ff5f57}.ey{background:#febc2e}.eg{background:#28c840}
+.elang{font-size:10px;color:var(--tm);margin-left:auto}
+.elines{font-size:10px;color:var(--tm)}
+#code-ed{
+  width:100%;min-height:320px;background:transparent;border:none;
+  color:#c9d1d9;padding:16px;font-size:13px;line-height:1.75;
+  outline:none;resize:vertical;tab-size:2;white-space:pre;
+}
+.char-c{font-size:10px;color:var(--tm);text-align:right;margin-top:4px}
+
+/* ─── PASTE VIEW ──────────────────────────── */
+.pv{max-width:960px;margin:0 auto;padding:26px 18px}
+.pv-title{font-family:'Syne',sans-serif;font-weight:900;font-size:25px;letter-spacing:-1px;margin-bottom:9px}
+.pv-meta{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--tm);flex-wrap:wrap;margin-bottom:10px}
+.pv-badge{font-size:9px;padding:2px 7px;border-radius:20px;background:var(--acd);color:var(--acb)}
+.tag-row{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px}
+.tpill{padding:2px 8px;border-radius:20px;font-size:9.5px;background:var(--s3);border:1px solid var(--b2);color:var(--ts);cursor:pointer;transition:all .13s}
+.tpill:hover{border-color:var(--ac);color:var(--acb)}
+
+/* stats strip */
+.stat-strip{display:flex;margin-bottom:14px;background:var(--s2);border:1px solid var(--b1);border-radius:var(--rs);overflow:hidden}
+.stat-item{flex:1;padding:10px 8px;text-align:center;border-right:1px solid var(--b1)}
+.stat-item:last-child{border-right:none}
+.stat-v{font-family:'Syne',sans-serif;font-weight:800;font-size:17px}
+.stat-l{font-size:9px;color:var(--tm);text-transform:uppercase;letter-spacing:.5px;margin-top:1px}
+
+/* action row */
+.act-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+
+/* code block */
+.cb{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);overflow:hidden}
+.cb-head{display:flex;align-items:center;gap:8px;padding:8px 13px;background:var(--s2);border-bottom:1px solid var(--b1)}
+.cb-lang{font-size:9.5px;color:var(--tm);text-transform:uppercase;letter-spacing:.8px}
+.cb-acts{margin-left:auto;display:flex;gap:5px}
+.code-body{display:flex;overflow-x:auto}
+.lnums{
+  padding:16px 12px 16px 16px;color:var(--b3);font-size:12px;
+  line-height:1.75;user-select:none;border-right:1px solid var(--b1);
+  min-width:46px;text-align:right;flex-shrink:0;
+  display:flex;flex-direction:column;
+}
+.cpre{padding:16px;font-size:12px;line-height:1.75;white-space:pre;color:#c9d1d9;flex:1;min-width:0}
+.cpre.wrap{white-space:pre-wrap;word-break:break-all}
+
+/* ─── COMMENTS ────────────────────────────── */
+.cmts{margin-top:22px}
+.cmts-title{font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:var(--ts);margin-bottom:13px}
+.cmt-inp{display:flex;gap:7px;margin-bottom:13px;align-items:flex-end}
+.cmt-inp textarea{flex:1;background:var(--s2);border:1px solid var(--b2);color:var(--t);border-radius:var(--rs);padding:9px 12px;font-size:12px;outline:none;resize:none;height:52px;transition:border-color .15s;font-family:inherit;line-height:1.5}
+.cmt-inp textarea:focus{border-color:var(--ac)}
+.cmt{background:var(--s1);border:1px solid var(--b1);border-radius:var(--rs);padding:11px 13px;margin-bottom:7px}
+.cmt-head{display:flex;align-items:center;gap:6px;margin-bottom:5px;font-size:10.5px;color:var(--tm)}
+.cmt-av{width:20px;height:20px;border-radius:50%;background:var(--acd);display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--acb);font-weight:700;flex-shrink:0}
+.cmt-body{font-size:12px;color:var(--ts);line-height:1.6}
+
+/* ─── PROFILE ─────────────────────────────── */
+.prof-wrap{max-width:720px;margin:0 auto;padding:28px 18px}
+.prof-card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:24px;margin-bottom:18px;display:flex;gap:18px;align-items:flex-start}
+.prof-av{width:76px;height:76px;border-radius:50%;border:2.5px solid var(--b2);overflow:hidden;flex-shrink:0;background:var(--acd);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:900;font-size:26px;color:var(--acb)}
+.prof-av img{width:100%;height:100%;object-fit:cover}
+.prof-info{flex:1}
+.prof-name{font-family:'Syne',sans-serif;font-weight:900;font-size:21px;letter-spacing:-.4px;margin-bottom:1px}
+.prof-uname{font-size:11.5px;color:var(--tm);margin-bottom:5px}
+.prof-bio{font-size:12px;color:var(--ts);line-height:1.6;margin-bottom:11px}
+.prof-stats{display:flex;gap:18px}
+.ps strong{font-family:'Syne',sans-serif;font-weight:800;font-size:17px;display:block}
+.ps span{font-size:10px;color:var(--tm)}
+@media(max-width:480px){.prof-card{flex-direction:column}}
+
+/* ─── EDIT PROFILE ────────────────────────── */
+.ep-wrap{max-width:580px;margin:0 auto;padding:28px 18px}
+.ep-sec{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:18px;margin-bottom:12px}
+.ep-t{font-family:'Syne',sans-serif;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--tm);margin-bottom:14px}
+.av-area{display:flex;align-items:center;gap:14px}
+.av-ring{width:72px;height:72px;border-radius:50%;border:2px dashed var(--b3);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;background:var(--s3);flex-shrink:0;font-size:20px;transition:border-color .15s}
+.av-ring:hover{border-color:var(--ac)}
+.av-ring img{width:100%;height:100%;object-fit:cover}
+
+/* ─── AUTH ────────────────────────────────── */
+.auth-pg{min-height:calc(100vh - 52px);display:flex;align-items:center;justify-content:center;padding:20px;background:radial-gradient(ellipse 50% 30% at 50% 0%,rgba(111,95,240,.06) 0%,transparent 70%)}
+.auth-box{width:100%;max-width:370px;background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:26px;box-shadow:var(--sh)}
+.auth-logo{display:flex;align-items:center;gap:7px;font-family:'Syne',sans-serif;font-weight:900;font-size:16px;margin-bottom:20px}
+.auth-t{font-family:'Syne',sans-serif;font-weight:900;font-size:22px;letter-spacing:-.5px;margin-bottom:3px}
+.auth-s{font-size:11px;color:var(--tm);margin-bottom:20px}
+.auth-foot{text-align:center;margin-top:13px;font-size:11px;color:var(--tm)}
+.auth-foot a{color:var(--acb);cursor:pointer}
+.auth-foot a:hover{text-decoration:underline}
+
+/* ─── SETTINGS ────────────────────────────── */
+.st-wrap{max-width:540px;margin:0 auto;padding:28px 18px}
+
+/* ─── NEW PASTE header ─────────────────────── */
+.np-wrap{max-width:920px;margin:0 auto;padding:26px 18px}
+.page-head{font-family:'Syne',sans-serif;font-weight:900;font-size:24px;letter-spacing:-.8px;margin-bottom:20px}
+
+/* ─── TRENDING BADGE ──────────────────────── */
+.hot{font-size:9px;background:rgba(240,165,0,.12);color:var(--yel);border:1px solid rgba(240,165,0,.2);padding:1px 6px;border-radius:20px}
+
+@keyframes pop{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
+@keyframes slideup{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fu{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.fu{animation:fu .25s ease both}
+
+@media print{#nav,.act-row,.cb-acts,button{display:none!important}.pg{padding-top:0!important}body{background:#fff;color:#000}.cb{border:1px solid #ddd}.cpre{color:#000}}
+</style>
+</head>
+<body>
+
+<!-- ═══ NAV ═══ -->
+<nav id="nav">
+  <div class="logo" onclick="go('home')">
+    <div class="logo-mark">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M4 5.5L7 8 4 10.5" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M9 10.5h4" stroke="#fff" stroke-width="1.7" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <span class="logo-txt">Code<em>Drop</em></span>
+  </div>
+  <div class="nav-sep"></div>
+  <button class="nav-link" onclick="go('explore')">Explore</button>
+  <div class="ngap"></div>
+
+  <!-- guest -->
+  <div id="ng" style="display:flex;gap:7px">
+    <button class="nbtn" onclick="go('login')">Log in</button>
+    <button class="nbtn ac" onclick="go('signup')">Sign up</button>
+  </div>
+
+  <!-- authed -->
+  <div id="nu" style="display:none;align-items:center;gap:7px">
+    <button class="nbtn ac" onclick="go('new-paste')">+ New Drop</button>
+    <div class="dd">
+      <div class="nav-av" onclick="toggleDD()" id="nav-av"></div>
+      <div class="ddm" id="nav-dd">
+        <button class="ddi" onclick="go('profile');closeDD()">👤 &nbsp;Profile</button>
+        <button class="ddi" onclick="go('my-pastes');closeDD()">📁 &nbsp;My Drops</button>
+        <button class="ddi" onclick="go('edit-profile');closeDD()">✏️ &nbsp;Edit Profile</button>
+        <div class="ddsep"></div>
+        <button class="ddi" onclick="go('settings');closeDD()">⚙️ &nbsp;Settings</button>
+        <div class="ddsep"></div>
+        <button class="ddi red" onclick="logout()">→&nbsp; Log out</button>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══ HOME ═══ -->
+<div id="pg-home" class="pg on">
+  <div class="hero">
+    <h1>Drop your<br/><em>code</em> here.</h1>
+    <p>Save & share code snippets instantly. Free forever, no sign-up needed to start.</p>
+    <div class="hero-btns">
+      <button class="btn btn-p" onclick="go('new-paste')">+ New Drop</button>
+      <button class="btn btn-s" onclick="go('explore')">Explore →</button>
+    </div>
+  </div>
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-lbl">Recent public drops</div>
+      <button class="btn btn-s sm" onclick="go('explore')">View all →</button>
+    </div>
+    <div class="grid" id="home-list"></div>
+  </div>
+</div>
+
+<!-- ═══ NEW PASTE ═══ -->
+<div id="pg-new-paste" class="pg">
+  <div class="np-wrap">
+    <div class="page-head" id="np-head">New Drop</div>
+    <div class="frow" style="margin-bottom:11px">
+      <div class="fg" style="margin:0"><div class="fl">Title</div><input class="fi" id="np-title" placeholder="Untitled drop…" maxlength="100"/></div>
+      <div class="fg" style="margin:0"><div class="fl">Language</div>
+        <select class="fi" id="np-lang" onchange="document.getElementById('ed-lbl').textContent=this.value">
+          <option value="plaintext">Plain Text</option>
+          <option value="javascript">JavaScript</option>
+          <option value="typescript">TypeScript</option>
+          <option value="python">Python</option>
+          <option value="lua">Lua</option>
+          <option value="html">HTML</option>
+          <option value="css">CSS</option>
+          <option value="cpp">C++</option>
+          <option value="c">C</option>
+          <option value="java">Java</option>
+          <option value="rust">Rust</option>
+          <option value="go">Go</option>
+          <option value="sql">SQL</option>
+          <option value="bash">Bash / Shell</option>
+          <option value="json">JSON</option>
+          <option value="markdown">Markdown</option>
+          <option value="php">PHP</option>
+          <option value="ruby">Ruby</option>
+          <option value="swift">Swift</option>
+          <option value="kotlin">Kotlin</option>
+          <option value="csharp">C#</option>
+          <option value="xml">XML</option>
+          <option value="yaml">YAML</option>
+          <option value="dockerfile">Dockerfile</option>
+        </select>
+      </div>
+    </div>
+    <div class="frow" style="margin-bottom:11px">
+      <div class="fg" style="margin:0"><div class="fl">Visibility</div>
+        <select class="fi" id="np-vis">
+          <option value="public">🌐 Public</option>
+          <option value="unlisted">🔗 Unlisted</option>
+          <option value="private">🔒 Private</option>
+        </select>
+      </div>
+      <div class="fg" style="margin:0"><div class="fl">Expires</div>
+        <select class="fi" id="np-exp">
+          <option value="never">Never</option>
+          <option value="1h">1 Hour</option>
+          <option value="24h">24 Hours</option>
+          <option value="7d">7 Days</option>
+          <option value="30d">30 Days</option>
+        </select>
+      </div>
+    </div>
+    <div class="frow" style="margin-bottom:11px">
+      <div class="fg" style="margin:0"><div class="fl">Description (optional)</div><input class="fi" id="np-desc" placeholder="Brief description…" maxlength="200"/></div>
+      <div class="fg" style="margin:0"><div class="fl">Tags (comma separated)</div><input class="fi" id="np-tags" placeholder="api, helper, roblox…" maxlength="100"/></div>
+    </div>
+    <div class="editor-shell">
+      <div class="ebar">
+        <div class="edots"><span class="er"></span><span class="ey"></span><span class="eg"></span></div>
+        <span class="elang" id="ed-lbl">plaintext</span>
+        <span class="elines" id="ed-lines">0 lines</span>
+      </div>
+      <textarea id="code-ed" placeholder="// Paste your code here…" onkeydown="tabKey(event)" oninput="edInput(this)" spellcheck="false"></textarea>
+    </div>
+    <div class="char-c" id="char-c">0 characters · 0 lines</div>
+    <div style="display:flex;gap:7px;margin-top:13px;flex-wrap:wrap">
+      <button class="btn btn-p" id="np-btn" onclick="submitDrop()">🚀 Drop it</button>
+      <button class="btn btn-s" onclick="previewDrop()">👁 Preview</button>
+      <button class="btn btn-s" onclick="go('home')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PASTE VIEW ═══ -->
+<div id="pg-paste-view" class="pg">
+  <div class="pv">
+    <div class="fu">
+      <div class="pv-title" id="pv-title"></div>
+      <div class="pv-meta" id="pv-meta"></div>
+      <div class="tag-row" id="pv-tags"></div>
+    </div>
+    <div class="stat-strip fu" id="pv-stats"></div>
+    <div class="act-row fu" id="pv-acts"></div>
+    <div class="cb fu">
+      <div class="cb-head">
+        <div class="edots"><span class="er"></span><span class="ey"></span><span class="eg"></span></div>
+        <span class="cb-lang" id="pv-lang"></span>
+        <div class="cb-acts">
+          <button class="btn btn-s xs" onclick="toggleWrap(this)">↩ Wrap</button>
+          <button class="btn btn-s xs" onclick="copyCode()">📋 Copy</button>
+          <button class="btn btn-p xs" onclick="openRaw()">Raw ↗</button>
+        </div>
+      </div>
+      <div class="code-body">
+        <div class="lnums" id="pv-lns"></div>
+        <pre class="cpre" id="pv-code"></pre>
+      </div>
+    </div>
+    <div id="pv-cmts" class="cmts fu"></div>
+  </div>
+</div>
+
+<!-- ═══ EXPLORE ═══ -->
+<div id="pg-explore" class="pg">
+  <div class="wrap">
+    <div class="page-head">Explore</div>
+    <div class="sbar"><span style="color:var(--tm)">⌕</span><input id="s-in" placeholder="Search title, code, tags…" oninput="doSearch(this.value)"/></div>
+    <div class="tabs">
+      <button class="tab on" onclick="setEF('all',this)">All</button>
+      <button class="tab" onclick="setEF('javascript',this)">JS</button>
+      <button class="tab" onclick="setEF('typescript',this)">TS</button>
+      <button class="tab" onclick="setEF('python',this)">Python</button>
+      <button class="tab" onclick="setEF('lua',this)">Lua</button>
+      <button class="tab" onclick="setEF('html',this)">HTML</button>
+      <button class="tab" onclick="setEF('bash',this)">Bash</button>
+      <button class="tab" onclick="setEF('sql',this)">SQL</button>
+    </div>
+    <div class="grid" id="ex-list"></div>
+  </div>
+</div>
+
+<!-- ═══ MY DROPS ═══ -->
+<div id="pg-my-pastes" class="pg">
+  <div class="wrap">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+      <div class="page-head" style="margin:0">My Drops</div>
+      <button class="btn btn-p sm" onclick="go('new-paste')">+ New</button>
+    </div>
+    <div class="tabs">
+      <button class="tab on" onclick="setMF('all',this)">All</button>
+      <button class="tab" onclick="setMF('public',this)">Public</button>
+      <button class="tab" onclick="setMF('unlisted',this)">Unlisted</button>
+      <button class="tab" onclick="setMF('private',this)">Private</button>
+    </div>
+    <div class="grid" id="my-list"></div>
+  </div>
+</div>
+
+<!-- ═══ PROFILE ═══ -->
+<div id="pg-profile" class="pg">
+  <div class="prof-wrap">
+    <div class="prof-card fu">
+      <div class="prof-av" id="p-av"></div>
+      <div class="prof-info">
+        <div class="prof-name" id="p-name"></div>
+        <div class="prof-uname" id="p-uname"></div>
+        <div class="prof-bio" id="p-bio"></div>
+        <div class="prof-stats" style="margin-bottom:12px">
+          <div class="ps"><strong id="p-drops">0</strong><span>Drops</span></div>
+          <div class="ps"><strong id="p-views">0</strong><span>Views</span></div>
+          <div class="ps"><strong id="p-likes">0</strong><span>Likes</span></div>
+          <div class="ps"><strong id="p-cmts">0</strong><span>Comments</span></div>
+        </div>
+        <div style="display:flex;gap:7px;flex-wrap:wrap">
+          <button class="btn btn-s sm" onclick="go('edit-profile')">✏️ Edit Profile</button>
+          <button class="btn btn-s sm" onclick="go('my-pastes')">📁 My Drops</button>
+        </div>
+      </div>
+    </div>
+    <div class="sec-lbl" style="margin-bottom:13px">Recent Drops</div>
+    <div class="grid" id="p-list"></div>
+  </div>
+</div>
+
+<!-- ═══ EDIT PROFILE ═══ -->
+<div id="pg-edit-profile" class="pg">
+  <div class="ep-wrap">
+    <div class="page-head">Edit Profile</div>
+    <div class="ep-sec">
+      <div class="ep-t">Profile Picture</div>
+      <div class="av-area">
+        <div class="av-ring" id="av-ring" onclick="document.getElementById('av-inp').click()">📷</div>
+        <input type="file" id="av-inp" accept="image/*" style="display:none" onchange="handleAv(this)"/>
+        <div>
+          <div style="font-size:12px;color:var(--ts);margin-bottom:5px">Tap to upload from phone or computer</div>
+          <div style="font-size:10.5px;color:var(--tm);margin-bottom:8px">JPG, PNG, GIF — max 5MB</div>
+          <button class="btn btn-d sm" onclick="removeAv()">Remove</button>
+        </div>
+      </div>
+    </div>
+    <div class="ep-sec">
+      <div class="ep-t">Basic Info</div>
+      <div class="fg"><div class="fl">Display Name</div><input class="fi" id="ep-name" maxlength="40" placeholder="Your name"/></div>
+      <div class="fg"><div class="fl">Username</div><input class="fi" id="ep-uname" maxlength="20" placeholder="username"/><div class="ferr" id="ep-uerr">Username already taken</div></div>
+      <div class="fg" style="margin:0"><div class="fl">Bio</div><textarea class="fi" id="ep-bio" maxlength="160" style="height:68px;resize:none" placeholder="Tell people about yourself…"></textarea></div>
+    </div>
+    <div class="ep-sec"><div class="ep-t">Account</div>
+      <div class="fg" style="margin:0"><div class="fl">Email</div><input class="fi" id="ep-email" type="email" placeholder="email@example.com"/></div>
+    </div>
+    <div style="display:flex;gap:7px">
+      <button class="btn btn-p" onclick="saveProfile()">Save changes</button>
+      <button class="btn btn-s" onclick="go('profile')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SETTINGS ═══ -->
+<div id="pg-settings" class="pg">
+  <div class="st-wrap">
+    <div class="page-head">Settings</div>
+    <div class="ep-sec">
+      <div class="ep-t">Default Drop Preferences</div>
+      <div class="fg"><div class="fl">Default Visibility</div><select class="fi" id="st-vis"><option value="public">🌐 Public</option><option value="unlisted">🔗 Unlisted</option><option value="private">🔒 Private</option></select></div>
+      <div class="fg"><div class="fl">Default Language</div><select class="fi" id="st-lang"><option value="plaintext">Plain Text</option><option value="javascript">JavaScript</option><option value="python">Python</option><option value="lua">Lua</option><option value="html">HTML</option><option value="bash">Bash</option></select></div>
+      <div class="fg" style="margin:0"><div class="fl">Default Expiry</div><select class="fi" id="st-exp"><option value="never">Never</option><option value="24h">24 Hours</option><option value="7d">7 Days</option><option value="30d">30 Days</option></select></div>
+    </div>
+    <div class="ep-sec">
+      <div class="ep-t">Danger Zone</div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap">
+        <button class="btn btn-d sm" onclick="confirmAct('Delete ALL your drops?','This cannot be undone.',delAllDrops)">Delete all drops</button>
+        <button class="btn btn-d sm" onclick="confirmAct('Delete your account?','All drops will also be removed permanently.',delAccount)">Delete account</button>
+      </div>
+    </div>
+    <button class="btn btn-p" onclick="saveSettings()">Save settings</button>
+  </div>
+</div>
+
+<!-- ═══ LOGIN ═══ -->
+<div id="pg-login" class="pg">
+  <div class="auth-pg">
+    <div class="auth-box fu">
+      <div class="auth-logo">
+        <div class="logo-mark" style="width:24px;height:24px"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M4 5.5L7 8 4 10.5" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 10.5h4" stroke="#fff" stroke-width="1.7" stroke-linecap="round"/></svg></div>
+        CodeDrop
+      </div>
+      <div class="auth-t">Welcome back</div>
+      <div class="auth-s">Log in to continue</div>
+      <div class="fg"><div class="fl">Email</div><input class="fi" id="li-em" type="email" placeholder="email@example.com" onkeydown="if(event.key==='Enter')login()"/></div>
+      <div class="fg"><div class="fl">Password</div><input class="fi" id="li-pw" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')login()"/></div>
+      <div class="ferr" id="li-err">Incorrect email or password</div>
+      <button class="btn btn-p" style="width:100%;justify-content:center;margin-top:5px" onclick="login()">Log in →</button>
+      <div class="auth-foot">No account? <a onclick="go('signup')">Sign up free</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SIGNUP ═══ -->
+<div id="pg-signup" class="pg">
+  <div class="auth-pg">
+    <div class="auth-box fu">
+      <div class="auth-logo">
+        <div class="logo-mark" style="width:24px;height:24px"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M4 5.5L7 8 4 10.5" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 10.5h4" stroke="#fff" stroke-width="1.7" stroke-linecap="round"/></svg></div>
+        CodeDrop
+      </div>
+      <div class="auth-t">Create account</div>
+      <div class="auth-s">Free forever. No credit card required.</div>
+      <div class="frow">
+        <div class="fg" style="margin-bottom:11px"><div class="fl">Display Name</div><input class="fi" id="su-name" maxlength="40" placeholder="Your name"/></div>
+        <div class="fg" style="margin-bottom:11px"><div class="fl">Username</div><input class="fi" id="su-uname" maxlength="20" placeholder="username"/></div>
+      </div>
+      <div class="fg"><div class="fl">Email</div><input class="fi" id="su-em" type="email" placeholder="email@example.com"/></div>
+      <div class="fg"><div class="fl">Password</div><input class="fi" id="su-pw" type="password" placeholder="Min 6 characters" onkeydown="if(event.key==='Enter')signup()"/></div>
+      <div class="ferr" id="su-err"></div>
+      <button class="btn btn-p" style="width:100%;justify-content:center;margin-top:5px" onclick="signup()">Create account →</button>
+      <div class="auth-foot">Have an account? <a onclick="go('login')">Log in</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODALS ═══ -->
+<div class="mbg" id="del-modal">
+  <div class="modal">
+    <div class="modal-t">Delete this drop?</div>
+    <div class="modal-s">This is permanent and cannot be undone.</div>
+    <div class="modal-acts"><button class="btn btn-s" onclick="cm('del-modal')">Cancel</button><button class="btn btn-d" onclick="confirmDel()">Delete</button></div>
+  </div>
+</div>
+<div class="mbg" id="conf-modal">
+  <div class="modal">
+    <div class="modal-t" id="conf-t"></div>
+    <div class="modal-s" id="conf-s"></div>
+    <div class="modal-acts"><button class="btn btn-s" onclick="cm('conf-modal')">Cancel</button><button class="btn btn-d" id="conf-btn">Confirm</button></div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+<script>
+// ── FIREBASE INIT ─────────────────────────────────────
+firebase.initializeApp({
+  apiKey:            "AIzaSyBFkJr1-FRUPLkMt9lVMVjqygtVm_hUdag",
+  authDomain:        "dropcode-io.firebaseapp.com",
+  projectId:         "dropcode-io",
+  storageBucket:     "dropcode-io.firebasestorage.app",
+  messagingSenderId: "202807594470",
+  appId:             "1:202807594470:web:9c7df2d74aaa93ff869a27"
+});
+const auth = firebase.auth();
+const db   = firebase.firestore();
+const stor = firebase.storage();
+
+// ── GLOBALS ───────────────────────────────────────────
+let currentUser = null;   // { id, name, username, bio, avatar, email }
+let ST = JSON.parse(localStorage.getItem('cd_st')||'{"vis":"public","lang":"plaintext","exp":"never"}');
+const uid = () => Math.random().toString(36).slice(2,9)+Date.now().toString(36);
+const esc = t => String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const ago = ts => { if(!ts) return ''; const d=Date.now()-(ts?.toMillis?.()??ts); if(d<60e3)return'just now'; if(d<3600e3)return Math.floor(d/60e3)+'m ago'; if(d<86400e3)return Math.floor(d/3600e3)+'h ago'; if(d<2592e6)return Math.floor(d/86400e3)+'d ago'; return new Date(ts?.toMillis?.()??ts).toLocaleDateString(); };
+const save = () => localStorage.setItem('cd_st', JSON.stringify(ST));
+const me = () => currentUser;
+
+// ── AUTH STATE ────────────────────────────────────────
+auth.onAuthStateChanged(async user => {
+  if (user) {
+    const snap = await db.collection('users').doc(user.uid).get();
+    currentUser = snap.exists ? { id: user.uid, ...snap.data() } : { id: user.uid, name: user.email, username: user.email.split('@')[0], bio: '', avatar: '' };
+  } else {
+    currentUser = null;
+  }
+  updateNav();
+  // re-render current page if home
+  if (document.getElementById('pg-home').classList.contains('on')) renderHome();
+});
+
+// ── NAV ──────────────────────────────────────────────
+function updateNav() {
+  const u = me();
+  document.getElementById('ng').style.display = u ? 'none' : 'flex';
+  document.getElementById('nu').style.display  = u ? 'flex' : 'none';
+  if (u) {
+    const el = document.getElementById('nav-av');
+    el.innerHTML = u.avatar ? `<img src="${u.avatar}">` : (u.name||u.username||'U')[0].toUpperCase();
+  }
+}
+
+// ── ROUTING ──────────────────────────────────────────
+let _H=['home'], curId=null, delTgt=null, ef='all', mf='all', wrapOn=false;
+function go(name, data) {
+  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
+  const pg = document.getElementById('pg-'+name); if(!pg) return;
+  pg.classList.add('on'); _H.push(name); window.scrollTo(0,0); closeDD();
+  if(name==='home')         renderHome();
+  if(name==='explore')      renderEx();
+  if(name==='my-pastes')    renderMy();
+  if(name==='profile')      renderProf();
+  if(name==='edit-profile') loadEP();
+  if(name==='new-paste')    resetNP();
+  if(name==='settings')     loadST_();
+  if(name==='paste-view'&&data) renderPV(data);
+}
+window.go = go;
+function back(){ _H.pop(); go(_H[_H.length-1]||'home'); }
+window.back = back;
+
+// ── DROPDOWN ─────────────────────────────────────────
+function toggleDD(){ document.getElementById('nav-dd').classList.toggle('on'); }
+function closeDD(){ document.getElementById('nav-dd').classList.remove('on'); }
+document.addEventListener('click',e=>{ if(!e.target.closest('.dd')) closeDD(); });
+window.toggleDD = toggleDD; window.closeDD = closeDD;
+
+// ── MODALS ────────────────────────────────────────────
+function cm(id){ document.getElementById(id).classList.remove('on'); }
+function om(id){ document.getElementById(id).classList.add('on'); }
+function openDel(id){ delTgt=id; om('del-modal'); }
+async function confirmDel(){
+  if(!delTgt) return;
+  await db.collection('pastes').doc(delTgt).delete();
+  cm('del-modal'); toast('Drop deleted','ok'); go('my-pastes');
+}
+function confirmAct(t,s,fn){ document.getElementById('conf-t').textContent=t; document.getElementById('conf-s').textContent=s; document.getElementById('conf-btn').onclick=()=>{fn();cm('conf-modal');}; om('conf-modal'); }
+window.cm=cm; window.openDel=openDel; window.confirmDel=confirmDel; window.confirmAct=confirmAct;
+
+// ── HOME ─────────────────────────────────────────────
+async function renderHome(){
+  document.getElementById('home-list').innerHTML = '<div style="color:var(--tm);font-size:12px;padding:20px">Loading…</div>';
+  try {
+    const snap = await db.collection('pastes').where('vis','==','public').orderBy('at','desc').limit(24).get();
+    const list = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+    document.getElementById('home-list').innerHTML = list.length ? list.map(p=>card(p)).join('') : empty('No drops yet','Be the first to drop some code!');
+  } catch(e){ document.getElementById('home-list').innerHTML = empty('Error loading drops',e.message); }
+}
+
+// ── CARD ──────────────────────────────────────────────
+function card(p, own=false){
+  const uname = p.authorName ? '@'+p.authorName : 'anonymous';
+  const visEl = p.vis==='public'?'<span class="vis-p">● public</span>':p.vis==='private'?'<span class="vis-r">● private</span>':'<span class="vis-u">● unlisted</span>';
+  const prev = (p.code||'').split('\n')[0].slice(0,100);
+  const likes = p.likes||0, cmts=(p.comments||[]).length;
+  const hot = likes>4?'<span class="hot">🔥 trending</span>':'';
+  const owActs = own?`<div class="card-owner-acts"><button class="btn btn-s xs" onclick="event.stopPropagation();editDrop('${p.id}')">Edit</button><button class="btn btn-d xs" onclick="event.stopPropagation();openDel('${p.id}')">Delete</button></div>`:'';
+  return `<div class="card" onclick="viewPaste('${p.id}')">
+    <div class="card-top"><span class="lbadge">${p.lang||'text'}</span><span class="card-title">${esc(p.title||'Untitled')}</span>${visEl}${hot}</div>
+    <div class="card-prev">${esc(prev||'(empty)')}</div>
+    <div class="card-foot"><span>${esc(uname)}</span><span class="sep">·</span><span>${ago(p.at)}</span><span class="sep">·</span><span>👁 ${p.views||0}</span><span class="sep">·</span><span>♥ ${likes}</span><span class="sep">·</span><span>💬 ${cmts}</span>${p.tags?.length?'<span class="sep">·</span><span style="color:var(--acb);font-size:9.5px">#'+p.tags.slice(0,2).join(' #')+'</span>':''}${owActs}</div>
+  </div>`;
+}
+function empty(t,s){ return `<div class="empty"><div class="empty-icon">📭</div><h3>${t}</h3><p>${s}</p></div>`; }
+
+// ── VIEW PASTE ────────────────────────────────────────
+async function viewPaste(id){
+  if(id==='__prev'){ curId=id; return; }
+  // increment view count
+  try{ await db.collection('pastes').doc(id).update({ views: firebase.firestore.FieldValue.increment(1) }); }catch(e){}
+  const snap = await db.collection('pastes').doc(id).get();
+  if(!snap.exists){ toast('Drop not found','err'); return; }
+  const p = { id:snap.id, ...snap.data() };
+  curId = id; go('paste-view', p);
+}
+window.viewPaste = viewPaste;
+
+function renderPV(p){
+  wrapOn = false;
+  const own = me() && me().id === p.uid;
+  const liked = (JSON.parse(localStorage.getItem('cd_lk')||'[]')).includes(p.id);
+  const visLbl = p.vis==='public'?'🌐 Public':p.vis==='private'?'🔒 Private':'🔗 Unlisted';
+
+  document.getElementById('pv-title').textContent = p.title||'Untitled';
+  document.getElementById('pv-lang').textContent  = p.lang;
+  document.getElementById('pv-meta').innerHTML = `
+    <span class="pv-badge">${p.lang}</span>
+    <span>${visLbl}</span>
+    <span>by <strong>${p.authorName ? '@'+esc(p.authorName) : 'anonymous'}</strong></span>
+    <span>${ago(p.at)}</span>
+    ${p.desc?`<span style="color:var(--ts)">— ${esc(p.desc)}</span>`:''}
+  `;
+  document.getElementById('pv-tags').innerHTML = p.tags?.length ? p.tags.map(t=>`<span class="tpill" onclick="tagSearch('${esc(t)}')">#${esc(t)}</span>`).join('') : '';
+
+  const lines=p.code.split('\n').length, words=p.code.trim().split(/\s+/).filter(Boolean).length;
+  document.getElementById('pv-stats').innerHTML=`
+    <div class="stat-item"><div class="stat-v">${lines}</div><div class="stat-l">Lines</div></div>
+    <div class="stat-item"><div class="stat-v">${p.code.length.toLocaleString()}</div><div class="stat-l">Chars</div></div>
+    <div class="stat-item"><div class="stat-v">${words.toLocaleString()}</div><div class="stat-l">Words</div></div>
+    <div class="stat-item"><div class="stat-v">${p.views||0}</div><div class="stat-l">Views</div></div>
+    <div class="stat-item"><div class="stat-v">${p.likes||0}</div><div class="stat-l">Likes</div></div>
+  `;
+
+  const ownerBtns = own ? `<button class="btn btn-s sm" onclick="editDrop('${p.id}')">✏️ Edit</button><button class="btn btn-d sm" onclick="openDel('${p.id}')">🗑 Delete</button>` : '';
+  document.getElementById('pv-acts').innerHTML=`
+    <button class="btn btn-p sm" onclick="copyCode()">📋 Copy</button>
+    <button class="btn btn-s sm" onclick="openRaw()">⬡ Raw ↗</button>
+    <button class="btn btn-s sm" onclick="dlDrop()">⬇ Download</button>
+    <button class="btn btn-s sm" onclick="cloneDrop('${p.id}')">🔁 Clone</button>
+    <button class="btn btn-s sm" onclick="shareLink()">🔗 Share</button>
+    <button class="btn btn-s sm ${liked?'liked-active':''}" id="like-btn" onclick="toggleLike('${p.id}')">♥ <span id="like-c">${p.likes||0}</span></button>
+    ${ownerBtns}
+  `;
+
+  const ls = p.code.split('\n');
+  document.getElementById('pv-lns').innerHTML = ls.map((_,i)=>`<span>${i+1}</span>`).join('\n');
+  document.getElementById('pv-code').textContent = p.code;
+  document.getElementById('pv-code').className = 'cpre';
+  renderCmts(p);
+}
+
+function copyCode(){ const el=document.getElementById('pv-code'); if(el) navigator.clipboard.writeText(el.textContent); toast('📋 Copied!','ok'); }
+window.copyCode=copyCode;
+
+function openRaw(){
+  const el=document.getElementById('pv-code'); if(!el) return;
+  const code=el.textContent;
+  const title=document.getElementById('pv-title').textContent;
+  const lang=document.getElementById('pv-lang').textContent;
+  const w=window.open('','_blank');
+  w.document.open();
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${esc(title)} — CodeDrop</title><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#080809;color:#c9d1d9;font:13px/1.8 'JetBrains Mono',monospace;white-space:pre}.bar{position:fixed;top:0;left:0;right:0;height:44px;background:rgba(8,8,9,.95);border-bottom:1px solid #1c1c20;display:flex;align-items:center;padding:0 16px;gap:10px;font-size:11.5px;color:#50505e;backdrop-filter:blur(12px)}.bar strong{color:#9585ff;font-family:sans-serif}.badge{background:rgba(111,95,240,.12);color:#9585ff;padding:2px 8px;border-radius:20px;font-size:9.5px}.act{background:#18181c;border:1px solid #2a2a30;color:#8a8a9e;padding:4px 10px;border-radius:7px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:11px}.act:hover{color:#f2f2f6;border-color:#383840}.gap{flex:1}pre{padding:60px 20px 30px}</style></head><body><div class="bar"><strong>CodeDrop</strong><span class="badge">${esc(lang)}</span><span>${esc(title)}</span><div class="gap"></div><button class="act" onclick="navigator.clipboard.writeText(document.querySelector('pre').textContent);this.textContent='✓ Copied'">📋 Copy</button></div><pre>${esc(code)}</pre></body></html>`);
+  w.document.close();
+}
+window.openRaw=openRaw;
+
+function dlDrop(){
+  const el=document.getElementById('pv-code'); if(!el) return;
+  const title=document.getElementById('pv-title').textContent;
+  const lang=document.getElementById('pv-lang').textContent;
+  const ext={javascript:'js',typescript:'ts',python:'py',lua:'lua',html:'html',css:'css',cpp:'cpp',c:'c',java:'java',rust:'rs',go:'go',sql:'sql',bash:'sh',json:'json',markdown:'md',php:'php',ruby:'rb',swift:'swift',kotlin:'kt',csharp:'cs',xml:'xml',yaml:'yml'}[lang]||'txt';
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([el.textContent],{type:'text/plain'}));
+  a.download=(title||'drop')+'.'+ext; a.click(); toast('⬇ Downloaded','ok');
+}
+window.dlDrop=dlDrop;
+
+function shareLink(){ navigator.clipboard.writeText(location.href.split('#')[0]+'#paste/'+curId); toast('🔗 Link copied!','ok'); }
+window.shareLink=shareLink;
+
+function toggleWrap(btn){
+  wrapOn=!wrapOn;
+  document.getElementById('pv-code').classList.toggle('wrap',wrapOn);
+  btn.textContent=wrapOn?'↩ Unwrap':'↩ Wrap';
+}
+window.toggleWrap=toggleWrap;
+
+async function toggleLike(id){
+  let lk=JSON.parse(localStorage.getItem('cd_lk')||'[]');
+  const btn=document.getElementById('like-btn'), cel=document.getElementById('like-c');
+  if(lk.includes(id)){
+    lk=lk.filter(x=>x!==id);
+    btn.classList.remove('liked-active');
+    cel.textContent=Math.max(0,parseInt(cel.textContent)-1);
+    try{ await db.collection('pastes').doc(id).update({ likes: firebase.firestore.FieldValue.increment(-1) }); }catch(e){}
+  } else {
+    lk.push(id); btn.classList.add('liked-active');
+    cel.textContent=parseInt(cel.textContent)+1;
+    try{ await db.collection('pastes').doc(id).update({ likes: firebase.firestore.FieldValue.increment(1) }); }catch(e){}
+    toast('♥ Liked!','ok');
+  }
+  localStorage.setItem('cd_lk',JSON.stringify(lk));
+}
+window.toggleLike=toggleLike;
+
+function cloneDrop(id){
+  // fetch the code already rendered in view
+  const code=document.getElementById('pv-code').textContent;
+  const title=document.getElementById('pv-title').textContent;
+  go('new-paste');
+  setTimeout(()=>{
+    document.getElementById('np-title').value='Clone — '+title;
+    document.getElementById('code-ed').value=code;
+    edInput(document.getElementById('code-ed'));
+    toast('🔁 Cloned — edit & drop!','ok');
+  },40);
+}
+window.cloneDrop=cloneDrop;
+
+function tagSearch(t){ go('explore'); setTimeout(()=>{ document.getElementById('s-in').value=t; renderEx(t); },40); }
+window.tagSearch=tagSearch;
+
+// ── COMMENTS ─────────────────────────────────────────
+function renderCmts(p){
+  const el=document.getElementById('pv-cmts');
+  const u=me(), isPreview=p.id==='__prev';
+  const cmts=p.comments||[];
+  el.innerHTML=`
+    <div class="cmts-title">💬 Comments (${cmts.length})</div>
+    ${u&&!isPreview?`<div class="cmt-inp"><textarea id="cmt-ta" placeholder="Add a comment…" maxlength="500"></textarea><button class="btn btn-p sm" onclick="postCmt('${p.id}')">Post</button></div>`:`<div style="font-size:11.5px;color:var(--tm);margin-bottom:12px">${isPreview?'Preview mode — comments disabled.':`<a onclick="go('login')" style="color:var(--acb);cursor:pointer">Log in</a> to comment`}</div>`}
+    ${cmts.slice().reverse().map(c=>`<div class="cmt"><div class="cmt-head"><div class="cmt-av">${(c.authorName||'A')[0].toUpperCase()}</div><strong style="color:var(--t);font-size:11.5px">${esc(c.authorName||'Anon')}</strong><span>${ago(c.at)}</span></div><div class="cmt-body">${esc(c.txt)}</div></div>`).join('')||'<div style="font-size:11.5px;color:var(--tm);padding:10px 0">No comments yet.</div>'}
+  `;
+}
+
+async function postCmt(pid){
+  const u=me(); if(!u) return;
+  const ta=document.getElementById('cmt-ta'); const txt=ta.value.trim(); if(!txt) return;
+  const cmt={ id:uid(), uid:u.id, authorName:u.username||u.name, txt, at:Date.now() };
+  try{
+    await db.collection('pastes').doc(pid).update({ comments: firebase.firestore.FieldValue.arrayUnion(cmt) });
+    ta.value='';
+    const snap=await db.collection('pastes').doc(pid).get();
+    if(snap.exists) renderCmts({ id:snap.id, ...snap.data() });
+    toast('💬 Posted!','ok');
+  }catch(e){ toast(e.message,'err'); }
+}
+window.postCmt=postCmt;
+
+// ── NEW PASTE ─────────────────────────────────────────
+function resetNP(){
+  document.getElementById('np-head').textContent='New Drop';
+  ['np-title','np-desc','np-tags'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('code-ed').value='';
+  document.getElementById('np-lang').value=ST.lang||'plaintext';
+  document.getElementById('np-vis').value=ST.vis||'public';
+  document.getElementById('np-exp').value=ST.exp||'never';
+  document.getElementById('ed-lbl').textContent=ST.lang||'plaintext';
+  document.getElementById('char-c').textContent='0 characters · 0 lines';
+  document.getElementById('ed-lines').textContent='0 lines';
+  document.getElementById('np-btn').textContent='🚀 Drop it';
+  document.getElementById('np-btn').onclick=submitDrop;
+}
+function edInput(el){
+  const l=el.value.split('\n').length,c=el.value.length;
+  document.getElementById('char-c').textContent=`${c.toLocaleString()} characters · ${l} lines`;
+  document.getElementById('ed-lines').textContent=l+' lines';
+}
+function tabKey(e){ if(e.key==='Tab'){e.preventDefault();const t=e.target,s=t.selectionStart;t.value=t.value.substring(0,s)+'  '+t.value.substring(t.selectionEnd);t.selectionStart=t.selectionEnd=s+2;edInput(t);} }
+window.resetNP=resetNP; window.edInput=edInput; window.tabKey=tabKey;
+
+async function submitDrop(){
+  const code=document.getElementById('code-ed').value;
+  if(!code.trim()){toast('Write some code first!','err');return;}
+  const u=me();
+  const tags=document.getElementById('np-tags').value.split(',').map(t=>t.trim().toLowerCase()).filter(Boolean).slice(0,8);
+  try{
+    const ref2 = await db.collection('pastes').add({
+      title: document.getElementById('np-title').value.trim()||'Untitled',
+      desc:  document.getElementById('np-desc').value.trim(),
+      code, lang: document.getElementById('np-lang').value,
+      vis:  document.getElementById('np-vis').value,
+      exp:  document.getElementById('np-exp').value,
+      tags,
+      uid:  u?u.id:null,
+      authorName: u?(u.username||u.name):null,
+      at:   Date.now(), views:0, likes:0, comments:[]
+    });
+    toast('🚀 Dropped!','ok'); curId=ref2.id;
+    const snap=await ref2.get();
+    go('paste-view',{ id:ref2.id, ...snap.data() });
+  }catch(e){ toast(e.message,'err'); }
+}
+window.submitDrop=submitDrop;
+
+async function editDrop(id){
+  const snap=await db.collection('pastes').doc(id).get(); if(!snap.exists) return;
+  const p={ id:snap.id, ...snap.data() };
+  go('new-paste');
+  document.getElementById('np-head').textContent='Edit Drop';
+  document.getElementById('np-title').value=p.title||''
+  document.getElementById('np-desc').value=p.desc||'';
+  document.getElementById('np-tags').value=(p.tags||[]).join(', ');
+  document.getElementById('code-ed').value=p.code;
+  document.getElementById('np-lang').value=p.lang;
+  document.getElementById('np-vis').value=p.vis;
+  document.getElementById('np-exp').value=p.exp||'never';
+  document.getElementById('ed-lbl').textContent=p.lang;
+  edInput(document.getElementById('code-ed'));
+  document.getElementById('np-btn').textContent='💾 Save changes';
+  document.getElementById('np-btn').onclick=async()=>{
+    try{
+      await db.collection('pastes').doc(id).update({
+        title: document.getElementById('np-title').value.trim()||'Untitled',
+        desc:  document.getElementById('np-desc').value.trim(),
+        code:  document.getElementById('code-ed').value,
+        lang:  document.getElementById('np-lang').value,
+        vis:   document.getElementById('np-vis').value,
+        tags:  document.getElementById('np-tags').value.split(',').map(t=>t.trim().toLowerCase()).filter(Boolean).slice(0,8),
+      });
+      toast('✅ Saved!','ok'); curId=id;
+      const snap2=await db.collection('pastes').doc(id).get();
+      go('paste-view',{ id, ...snap2.data() });
+    }catch(e){ toast(e.message,'err'); }
+  };
+}
+window.editDrop=editDrop;
+
+function previewDrop(){
+  const code=document.getElementById('code-ed').value;
+  if(!code.trim()){toast('Nothing to preview','err');return;}
+  const fake={id:'__prev',title:document.getElementById('np-title').value||'Preview',desc:document.getElementById('np-desc').value,code,lang:document.getElementById('np-lang').value,vis:'public',tags:document.getElementById('np-tags').value.split(',').map(t=>t.trim()).filter(Boolean),at:Date.now(),views:0,likes:0,comments:[]};
+  curId='__prev'; go('paste-view',fake); toast('👁 Preview','ok');
+}
+window.previewDrop=previewDrop;
+
+// ── EXPLORE ───────────────────────────────────────────
+async function renderEx(q){
+  document.getElementById('ex-list').innerHTML='<div style="color:var(--tm);font-size:12px;padding:20px">Loading…</div>';
+  try{
+    const snap=await db.collection('pastes').where('vis','==','public').orderBy('at','desc').limit(50).get();
+    let list=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(ef!=='all') list=list.filter(p=>p.lang===ef);
+    if(q) list=list.filter(p=>(p.title+p.code+(p.tags||[]).join(' ')+(p.desc||'')).toLowerCase().includes(q.toLowerCase()));
+    document.getElementById('ex-list').innerHTML=list.length?list.map(p=>card(p)).join(''): empty('Nothing found','Try a different search or filter');
+  }catch(e){ document.getElementById('ex-list').innerHTML=empty('Error',e.message); }
+}
+function setEF(f,el){ ef=f; document.querySelectorAll('#pg-explore .tab').forEach(t=>t.classList.remove('on')); el.classList.add('on'); renderEx(document.getElementById('s-in').value); }
+function doSearch(q){ renderEx(q); }
+window.setEF=setEF; window.doSearch=doSearch;
+
+// ── MY DROPS ──────────────────────────────────────────
+async function renderMy(){
+  const u=me(); if(!u){go('login');return;}
+  document.getElementById('my-list').innerHTML='<div style="color:var(--tm);font-size:12px;padding:20px">Loading…</div>';
+  try{
+    const snap=await db.collection('pastes').where('uid','==',u.id).orderBy('at','desc').get();
+    let list=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(mf!=='all') list=list.filter(p=>p.vis===mf);
+    document.getElementById('my-list').innerHTML=list.length?list.map(p=>card(p,true)).join(''): empty('No drops yet','Create your first drop!');
+  }catch(e){ document.getElementById('my-list').innerHTML=empty('Error',e.message); }
+}
+function setMF(f,el){ mf=f; document.querySelectorAll('#pg-my-pastes .tab').forEach(t=>t.classList.remove('on')); el.classList.add('on'); renderMy(); }
+window.renderMy=renderMy; window.setMF=setMF;
+
+// ── PROFILE ───────────────────────────────────────────
+async function renderProf(){
+  const u=me(); if(!u){go('login');return;}
+  try{
+    const snap=await db.collection('pastes').where('uid','==',u.id).orderBy('at','desc').get();
+    const drops=snap.docs.map(d=>({id:d.id,...d.data()}));
+    const views=drops.reduce((n,p)=>n+(p.views||0),0);
+    const likes=drops.reduce((n,p)=>n+(p.likes||0),0);
+    const cmtsTotal=drops.reduce((n,p)=>n+(p.comments||[]).length,0);
+    document.getElementById('p-name').textContent=u.name||u.username;
+    document.getElementById('p-uname').textContent='@'+(u.username||'user');
+    document.getElementById('p-bio').textContent=u.bio||'No bio yet.';
+    document.getElementById('p-drops').textContent=drops.length;
+    document.getElementById('p-views').textContent=views;
+    document.getElementById('p-likes').textContent=likes;
+    document.getElementById('p-cmts').textContent=cmtsTotal;
+    const av=document.getElementById('p-av');
+    av.innerHTML=u.avatar?`<img src="${u.avatar}">`:(u.name||u.username||'U')[0].toUpperCase();
+    document.getElementById('p-list').innerHTML=drops.slice(0,12).map(p=>card(p,true)).join('')||empty('No drops yet','Start dropping!');
+  }catch(e){ toast(e.message,'err'); }
+}
+
+// ── EDIT PROFILE ──────────────────────────────────────
+function loadEP(){
+  const u=me(); if(!u){go('login');return;}
+  document.getElementById('ep-name').value=u.name||u.username||''
+  document.getElementById('ep-uname').value=u.username||'';
+  document.getElementById('ep-bio').value=u.bio||'';
+  document.getElementById('ep-email').value=u.email||'';
+  document.getElementById('av-ring').innerHTML=u.avatar?`<img src="${u.avatar}">`:'📷';
+}
+
+async function handleAv(inp){
+  const f=inp.files[0]; if(!f) return;
+  if(f.size>5*1024*1024){toast('Max 5MB','err');return;}
+  const u=me(); if(!u) return;
+  try{
+    const storRef = stor.ref(`avatars/${u.id}`);
+    await storRef.put(f);
+    const url = await storRef.getDownloadURL();
+    await db.collection('users').doc(u.id).update({ avatar:url });
+    currentUser.avatar=url;
+    document.getElementById('av-ring').innerHTML=`<img src="${url}">`;
+    updateNav(); toast('Avatar saved!','ok');
+  }catch(e){ toast(e.message,'err'); }
+}
+window.handleAv=handleAv;
+
+async function removeAv(){
+  const u=me(); if(!u) return;
+  await db.collection('users').doc(u.id).update({ avatar:'' });
+  currentUser.avatar='';
+  document.getElementById('av-ring').innerHTML='📷';
+  updateNav(); toast('Avatar removed','ok');
+}
+window.removeAv=removeAv;
+
+async function saveProfile(){
+  const u=me(); if(!u) return;
+  const nu=document.getElementById('ep-uname').value.trim().toLowerCase().replace(/[^a-z0-9_]/g,'');
+  const err=document.getElementById('ep-uerr'); err.classList.remove('on');
+  try{
+    const data={
+      name:     document.getElementById('ep-name').value.trim(),
+      username: nu||u.username,
+      bio:      document.getElementById('ep-bio').value.trim(),
+      email:    document.getElementById('ep-email').value.trim(),
+    };
+    await db.collection('users').doc(u.id).update(data);
+    Object.assign(currentUser,data);
+    updateNav(); toast('✅ Profile saved!','ok'); go('profile');
+  }catch(e){ toast(e.message,'err'); }
+}
+window.saveProfile=saveProfile;
+
+// ── SETTINGS ──────────────────────────────────────────
+function loadST_(){ document.getElementById('st-vis').value=ST.vis||'public'; document.getElementById('st-lang').value=ST.lang||'plaintext'; document.getElementById('st-exp').value=ST.exp||'never'; }
+function saveSettings(){ ST.vis=document.getElementById('st-vis').value; ST.lang=document.getElementById('st-lang').value; ST.exp=document.getElementById('st-exp').value; save(); toast('✅ Settings saved!','ok'); }
+async function delAllDrops(){
+  const u=me(); if(!u) return;
+  const snap=await db.collection('pastes').where('uid','==',u.id).get();
+  await Promise.all(snap.docs.map(d=>d.ref.delete()));
+  toast('All drops deleted','ok'); go('my-pastes');
+}
+async function delAccount(){
+  const u=me(); if(!u) return;
+  const snap=await db.collection('pastes').where('uid','==',u.id).get();
+  await Promise.all(snap.docs.map(d=>d.ref.delete()));
+  await db.collection('users').doc(u.id).delete();
+  await auth.currentUser.delete();
+  currentUser=null; updateNav(); go('home'); toast('Account deleted','ok');
+}
+window.loadST_=loadST_; window.saveSettings=saveSettings; window.delAllDrops=delAllDrops; window.delAccount=delAccount;
+
+// ── AUTH ──────────────────────────────────────────────
+async function signup(){
+  const name  = document.getElementById('su-name').value.trim();
+  const uname = document.getElementById('su-uname').value.trim().toLowerCase().replace(/[^a-z0-9_]/g,'');
+  const em    = document.getElementById('su-em').value.trim();
+  const pw    = document.getElementById('su-pw').value;
+  const err   = document.getElementById('su-err'); err.classList.remove('on');
+  if(!name||!uname||!em||!pw){err.textContent='All fields required';err.classList.add('on');return;}
+  if(pw.length<6){err.textContent='Password needs 6+ characters';err.classList.add('on');return;}
+  try{
+    const cred=await auth.createUserWithEmailAndPassword(em,pw);
+    await db.collection('users').doc(cred.user.uid).set({
+      name, username:uname, email:em, bio:'', avatar:'', at:Date.now()
+    });
+    toast('🎉 Welcome, '+name+'!','ok'); go('home');
+  }catch(e){
+    err.textContent=e.code==='auth/email-already-in-use'?'Email already registered':e.message;
+    err.classList.add('on');
+  }
+}
+window.signup=signup;
+
+async function login(){
+  const em  = document.getElementById('li-em').value.trim();
+  const pw  = document.getElementById('li-pw').value;
+  const err = document.getElementById('li-err'); err.classList.remove('on');
+  try{
+    await auth.signInWithEmailAndPassword(em,pw);
+    toast('👋 Welcome back!','ok'); go('home');
+  }catch(e){ err.classList.add('on'); }
+}
+window.login=login;
+
+async function logout(){
+  await auth.signOut(); currentUser=null; updateNav(); closeDD(); toast('Logged out','ok'); go('home');
+}
+window.logout=logout;
+
+// ── TOAST ─────────────────────────────────────────────
+function toast(msg,type=''){
+  const t=document.createElement('div');
+  t.className='toast '+(type==='ok'?'ok':type==='err'?'err':'');
+  t.textContent=msg; document.body.appendChild(t);
+  setTimeout(()=>t.remove(),2500);
+}
+window.toast=toast;
+
+// ── HASH ROUTING ──────────────────────────────────────
+async function handleHash(){
+  const h=location.hash.slice(1);
+  if(h.startsWith('paste/')){
+    const id=h.slice(6);
+    try{
+      const snap=await db.collection('pastes').doc(id).get();
+      if(snap.exists){ curId=id; go('paste-view',{id,...snap.data()}); return; }
+    }catch(e){}
+  }
+  go('home');
+}
+
+// ── INIT ──────────────────────────────────────────────
+document.head.insertAdjacentHTML('beforeend','<style>.liked-active{background:rgba(245,100,100,.1)!important;color:#ff6b6b!important;border-color:rgba(245,100,100,.28)!important}</style>');
+handleHash();
+window.addEventListener('hashchange',handleHash);
+</script>
+</body>
+</html>
