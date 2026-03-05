@@ -101,6 +101,27 @@ select.fi option{background:var(--s2)}
 .frow{display:grid;grid-template-columns:1fr 1fr;gap:11px}
 @media(max-width:540px){.frow{grid-template-columns:1fr}}
 
+/* ─── LOGIN BANNER ────────────────────────── */
+.login-banner{
+  position:fixed;bottom:0;left:0;right:0;z-index:990;
+  background:linear-gradient(135deg,rgba(111,95,240,.97),rgba(149,133,255,.97));
+  backdrop-filter:blur(12px);
+  border-top:1px solid rgba(255,255,255,.12);
+  padding:13px 18px;
+  display:flex;align-items:center;gap:12px;
+  box-shadow:0 -8px 32px rgba(111,95,240,.3);
+  transform:translateY(100%);
+  transition:transform .3s cubic-bezier(.34,1.56,.64,1);
+}
+.login-banner.show{transform:translateY(0)}
+.login-banner-txt{flex:1;font-size:12px;color:rgba(255,255,255,.9);line-height:1.5}
+.login-banner-txt strong{color:#fff;display:block;font-family:'Syne',sans-serif;font-size:13px;margin-bottom:1px}
+.login-banner-btns{display:flex;gap:7px;flex-shrink:0}
+.lbb-login{background:#fff;color:var(--ac);border:none;padding:7px 15px;border-radius:7px;font-size:11.5px;font-family:inherit;font-weight:700;cursor:pointer;transition:opacity .14s}
+.lbb-login:hover{opacity:.9}
+.lbb-close{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.2);padding:7px 11px;border-radius:7px;font-size:11.5px;font-family:inherit;cursor:pointer;transition:all .14s}
+.lbb-close:hover{background:rgba(255,255,255,.25)}
+
 /* ─── TOAST ───────────────────────────────── */
 .toast{
   position:fixed;bottom:18px;right:18px;z-index:999;
@@ -411,10 +432,11 @@ select.fi option{background:var(--s2)}
       <textarea id="code-ed" placeholder="// Paste your code here…" onkeydown="tabKey(event)" oninput="edInput(this)" spellcheck="false"></textarea>
     </div>
     <div class="char-c" id="char-c">0 characters · 0 lines</div>
-    <div style="display:flex;gap:7px;margin-top:13px;flex-wrap:wrap">
+    <div style="display:flex;gap:7px;margin-top:13px;flex-wrap:wrap;align-items:center">
       <button class="btn btn-p" id="np-btn" onclick="submitDrop()">🚀 Drop it</button>
       <button class="btn btn-s" onclick="previewDrop()">👁 Preview</button>
       <button class="btn btn-s" onclick="go('home')">Cancel</button>
+      <span id="guest-hint" style="font-size:10.5px;color:var(--tm);display:none">🔐 <a onclick="go('login')" style="color:var(--acb);cursor:pointer">Log in</a> to post</span>
     </div>
   </div>
 </div>
@@ -435,7 +457,6 @@ select.fi option{background:var(--s2)}
         <span class="cb-lang" id="pv-lang"></span>
         <div class="cb-acts">
           <button class="btn btn-s xs" onclick="toggleWrap(this)">↩ Wrap</button>
-          <button class="btn btn-s xs" onclick="copyCode()">📋 Copy</button>
           <button class="btn btn-p xs" onclick="openRaw()">Raw ↗</button>
         </div>
       </div>
@@ -621,6 +642,18 @@ select.fi option{background:var(--s2)}
   </div>
 </div>
 
+<!-- ═══ LOGIN BANNER ═══ -->
+<div class="login-banner" id="login-banner">
+  <div class="login-banner-txt">
+    <strong>🔐 Sign in to drop code</strong>
+    You can browse freely — create an account to post, like & comment.
+  </div>
+  <div class="login-banner-btns">
+    <button class="lbb-login" onclick="dismissBanner();go('signup')">Sign up free</button>
+    <button class="lbb-close" onclick="dismissBanner()">✕</button>
+  </div>
+</div>
+
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -716,7 +749,25 @@ function confirmAct(t,s,fn){ document.getElementById('conf-t').textContent=t; do
 window.cm=cm; window.openDel=openDel; window.confirmDel=confirmDel; window.confirmAct=confirmAct;
 
 // ── HOME ─────────────────────────────────────────────
+async function checkExpiry(){
+  // Auto-delete expired drops
+  try{
+    const now=Date.now();
+    const expMap={'24h':86400000,'7d':604800000,'30d':2592000000};
+    const snap=await db.collection('pastes').where('exp','!=','never').get();
+    const toDelete=snap.docs.filter(d=>{
+      const p=d.data();
+      if(!p.exp||p.exp==='never') return false;
+      const ttl=expMap[p.exp];
+      return ttl && (now - p.at) > ttl;
+    });
+    await Promise.all(toDelete.map(d=>d.ref.delete()));
+    if(toDelete.length) console.log('Expired',toDelete.length,'drops');
+  }catch(e){}
+}
+
 async function renderHome(){
+  checkExpiry(); // run in background
   document.getElementById('home-list').innerHTML = '<div style="color:var(--tm);font-size:12px;padding:20px">Loading…</div>';
   try {
     const snap = await db.collection('pastes').where('vis','==','public').orderBy('at','desc').limit(24).get();
@@ -731,12 +782,13 @@ function card(p, own=false){
   const visEl = p.vis==='public'?'<span class="vis-p">● public</span>':p.vis==='private'?'<span class="vis-r">● private</span>':'<span class="vis-u">● unlisted</span>';
   const prev = (p.code||'').split('\n')[0].slice(0,100);
   const likes = p.likes||0, cmts=(p.comments||[]).length;
+  const lineCount=(p.code||'').split('\n').length;
   const hot = likes>4?'<span class="hot">🔥 trending</span>':'';
   const owActs = own?`<div class="card-owner-acts"><button class="btn btn-s xs" onclick="event.stopPropagation();editDrop('${p.id}')">Edit</button><button class="btn btn-d xs" onclick="event.stopPropagation();openDel('${p.id}')">Delete</button></div>`:'';
   return `<div class="card" onclick="viewPaste('${p.id}')">
     <div class="card-top"><span class="lbadge">${p.lang||'text'}</span><span class="card-title">${esc(p.title||'Untitled')}</span>${visEl}${hot}</div>
     <div class="card-prev">${esc(prev||'(empty)')}</div>
-    <div class="card-foot"><span>${esc(uname)}</span><span class="sep">·</span><span>${ago(p.at)}</span><span class="sep">·</span><span>👁 ${p.views||0}</span><span class="sep">·</span><span>♥ ${likes}</span><span class="sep">·</span><span>💬 ${cmts}</span>${p.tags?.length?'<span class="sep">·</span><span style="color:var(--acb);font-size:9.5px">#'+p.tags.slice(0,2).join(' #')+'</span>':''}${owActs}</div>
+    <div class="card-foot"><span>${esc(uname)}</span><span class="sep">·</span><span>${ago(p.at)}</span><span class="sep">·</span><span>${lineCount}L</span><span class="sep">·</span><span>👁 ${p.views||0}</span><span class="sep">·</span><span>♥ ${likes}</span><span class="sep">·</span><span>💬 ${cmts}</span>${p.tags?.length?'<span class="sep">·</span><span style="color:var(--acb);font-size:9.5px">#'+p.tags.slice(0,2).join(' #')+'</span>':''}${owActs}</div>
   </div>`;
 }
 function empty(t,s){ return `<div class="empty"><div class="empty-icon">📭</div><h3>${t}</h3><p>${s}</p></div>`; }
@@ -781,10 +833,7 @@ function renderPV(p){
 
   const ownerBtns = own ? `<button class="btn btn-s sm" onclick="editDrop('${p.id}')">✏️ Edit</button><button class="btn btn-d sm" onclick="openDel('${p.id}')">🗑 Delete</button>` : '';
   document.getElementById('pv-acts').innerHTML=`
-    <button class="btn btn-p sm" onclick="copyCode()">📋 Copy</button>
-    <button class="btn btn-s sm" onclick="openRaw()">⬡ Raw ↗</button>
     <button class="btn btn-s sm" onclick="dlDrop()">⬇ Download</button>
-    <button class="btn btn-s sm" onclick="cloneDrop('${p.id}')">🔁 Clone</button>
     <button class="btn btn-s sm" onclick="shareLink()">🔗 Share</button>
     <button class="btn btn-s sm ${liked?'liked-active':''}" id="like-btn" onclick="toggleLike('${p.id}')">♥ <span id="like-c">${p.likes||0}</span></button>
     ${ownerBtns}
@@ -803,12 +852,10 @@ window.copyCode=copyCode;
 function openRaw(){
   const el=document.getElementById('pv-code'); if(!el) return;
   const code=el.textContent;
-  const title=document.getElementById('pv-title').textContent;
-  const lang=document.getElementById('pv-lang').textContent;
-  const w=window.open('','_blank');
-  w.document.open();
-  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${esc(title)} — CodeDrop</title><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#080809;color:#c9d1d9;font:13px/1.8 'JetBrains Mono',monospace;white-space:pre}.bar{position:fixed;top:0;left:0;right:0;height:44px;background:rgba(8,8,9,.95);border-bottom:1px solid #1c1c20;display:flex;align-items:center;padding:0 16px;gap:10px;font-size:11.5px;color:#50505e;backdrop-filter:blur(12px)}.bar strong{color:#9585ff;font-family:sans-serif}.badge{background:rgba(111,95,240,.12);color:#9585ff;padding:2px 8px;border-radius:20px;font-size:9.5px}.act{background:#18181c;border:1px solid #2a2a30;color:#8a8a9e;padding:4px 10px;border-radius:7px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:11px}.act:hover{color:#f2f2f6;border-color:#383840}.gap{flex:1}pre{padding:60px 20px 30px}</style></head><body><div class="bar"><strong>CodeDrop</strong><span class="badge">${esc(lang)}</span><span>${esc(title)}</span><div class="gap"></div><button class="act" onclick="navigator.clipboard.writeText(document.querySelector('pre').textContent);this.textContent='✓ Copied'">📋 Copy</button></div><pre>${esc(code)}</pre></body></html>`);
-  w.document.close();
+  // Pure plain text in a new tab - true pastebin raw style
+  const blob=new Blob([code],{type:'text/plain;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  window.open(url,'_blank');
 }
 window.openRaw=openRaw;
 
@@ -834,6 +881,7 @@ function toggleWrap(btn){
 window.toggleWrap=toggleWrap;
 
 async function toggleLike(id){
+  if(!me()){ showLoginBanner('Log in to like drops.'); return; }
   let lk=JSON.parse(localStorage.getItem('cd_lk')||'[]');
   const btn=document.getElementById('like-btn'), cel=document.getElementById('like-c');
   if(lk.includes(id)){
@@ -851,19 +899,7 @@ async function toggleLike(id){
 }
 window.toggleLike=toggleLike;
 
-function cloneDrop(id){
-  // fetch the code already rendered in view
-  const code=document.getElementById('pv-code').textContent;
-  const title=document.getElementById('pv-title').textContent;
-  go('new-paste');
-  setTimeout(()=>{
-    document.getElementById('np-title').value='Clone — '+title;
-    document.getElementById('code-ed').value=code;
-    edInput(document.getElementById('code-ed'));
-    toast('🔁 Cloned — edit & drop!','ok');
-  },40);
-}
-window.cloneDrop=cloneDrop;
+
 
 function tagSearch(t){ go('explore'); setTimeout(()=>{ document.getElementById('s-in').value=t; renderEx(t); },40); }
 window.tagSearch=tagSearch;
@@ -881,7 +917,7 @@ function renderCmts(p){
 }
 
 async function postCmt(pid){
-  const u=me(); if(!u) return;
+  const u=me(); if(!u){ showLoginBanner('Log in to post comments.'); return; }
   const ta=document.getElementById('cmt-ta'); const txt=ta.value.trim(); if(!txt) return;
   const cmt={ id:uid(), uid:u.id, authorName:u.username||u.name, txt, at:Date.now() };
   try{
@@ -897,6 +933,8 @@ window.postCmt=postCmt;
 // ── NEW PASTE ─────────────────────────────────────────
 function resetNP(){
   document.getElementById('np-head').textContent='New Drop';
+  const hint = document.getElementById('guest-hint');
+  if(hint) hint.style.display = me() ? 'none' : 'inline';
   ['np-title','np-desc','np-tags'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('code-ed').value='';
   document.getElementById('np-lang').value=ST.lang||'plaintext';
@@ -920,6 +958,7 @@ async function submitDrop(){
   const code=document.getElementById('code-ed').value;
   if(!code.trim()){toast('Write some code first!','err');return;}
   const u=me();
+  if(!u){ showLoginBanner('You need to log in to drop code.'); return; }
   const tags=document.getElementById('np-tags').value.split(',').map(t=>t.trim().toLowerCase()).filter(Boolean).slice(0,8);
   try{
     const ref2 = await db.collection('pastes').add({
@@ -1048,17 +1087,32 @@ function loadEP(){
 
 async function handleAv(inp){
   const f=inp.files[0]; if(!f) return;
-  if(f.size>5*1024*1024){toast('Max 5MB','err');return;}
+  if(f.size>2*1024*1024){toast('Max 2MB for profile pics','err');return;}
   const u=me(); if(!u) return;
-  try{
-    const storRef = stor.ref(`avatars/${u.id}`);
-    await storRef.put(f);
-    const url = await storRef.getDownloadURL();
-    await db.collection('users').doc(u.id).update({ avatar:url });
-    currentUser.avatar=url;
-    document.getElementById('av-ring').innerHTML=`<img src="${url}">`;
-    updateNav(); toast('Avatar saved!','ok');
-  }catch(e){ toast(e.message,'err'); }
+  toast('Uploading…','');
+  // Resize + compress to base64 to avoid Storage CORS issues
+  const reader=new FileReader();
+  reader.onload=async e=>{
+    try{
+      // Resize to max 200x200 via canvas
+      const img=new Image();
+      img.onload=async()=>{
+        const canvas=document.createElement('canvas');
+        const max=200;
+        let w=img.width, h=img.height;
+        if(w>h){if(w>max){h=h*(max/w);w=max;}}else{if(h>max){w=w*(max/h);h=max;}}
+        canvas.width=w; canvas.height=h;
+        canvas.getContext('2d').drawImage(img,0,0,w,h);
+        const b64=canvas.toDataURL('image/jpeg',0.82);
+        await db.collection('users').doc(u.id).update({ avatar:b64 });
+        currentUser.avatar=b64;
+        document.getElementById('av-ring').innerHTML=`<img src="${b64}">`;
+        updateNav(); toast('✅ Avatar saved!','ok');
+      };
+      img.src=e.target.result;
+    }catch(err){ toast(err.message,'err'); }
+  };
+  reader.readAsDataURL(f);
 }
 window.handleAv=handleAv;
 
@@ -1168,10 +1222,47 @@ async function handleHash(){
   go('home');
 }
 
+// ── BANNER ────────────────────────────────────────────
+let _bannerDismissed = false;
+let _bannerTimer = null;
+
+function showLoginBanner(msg){
+  if(me()) return; // already logged in
+  const banner = document.getElementById('login-banner');
+  const txt = banner.querySelector('.login-banner-txt');
+  txt.innerHTML = `<strong>🔐 Sign in to continue</strong>${msg}`;
+  banner.classList.add('show');
+  clearTimeout(_bannerTimer);
+  _bannerTimer = setTimeout(()=> banner.classList.remove('show'), 6000);
+}
+
+function dismissBanner(){
+  _bannerDismissed = true;
+  document.getElementById('login-banner').classList.remove('show');
+  clearTimeout(_bannerTimer);
+}
+window.dismissBanner = dismissBanner;
+
+function maybeShowWelcomeBanner(){
+  // Show banner to guests after 8s if they haven't dismissed it
+  if(me() || _bannerDismissed) return;
+  if(sessionStorage.getItem('cd_banner_seen')) return;
+  setTimeout(()=>{
+    if(me() || _bannerDismissed) return;
+    const banner = document.getElementById('login-banner');
+    banner.querySelector('.login-banner-txt').innerHTML =
+      '<strong>👋 Welcome to CodeDrop</strong>Browse freely — sign up to post, like & comment.';
+    banner.classList.add('show');
+    sessionStorage.setItem('cd_banner_seen','1');
+    _bannerTimer = setTimeout(()=> banner.classList.remove('show'), 7000);
+  }, 8000);
+}
+
 // ── INIT ──────────────────────────────────────────────
 document.head.insertAdjacentHTML('beforeend','<style>.liked-active{background:rgba(245,100,100,.1)!important;color:#ff6b6b!important;border-color:rgba(245,100,100,.28)!important}</style>');
 handleHash();
 window.addEventListener('hashchange',handleHash);
+maybeShowWelcomeBanner();
 </script>
 </body>
 </html>
